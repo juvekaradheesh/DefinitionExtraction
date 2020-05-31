@@ -1,17 +1,18 @@
 # DefinitionExtraction
-This repository focuses on Sequence Labelling and sentence classification task for definition extraction from text. Current work is inspired from: https://github.com/mattboggess/cs224n_glossary_extraction. 
+This repository focuses on Sequence Labelling and sentence classification task for definition extraction from text. Current work is inspired from: https://github.com/mattboggess/cs224n_glossary_extraction.   
+Data is retrieved from multiple sources and is processsed by following [this](https://github.com/mattboggess/cs224n_glossary_extraction) repository with some minor changes.
 
 ## Files
 
 ```bash
 .
-├── data - data retrieved from openstax textbooks using [this](https://github.com/mattboggess/cs224n_glossary_extraction) repository
-│   ├── classification  - sentence classification data
+├── data
+│   ├── classification # sentence classification data
 │   │   ├── all 
 │   │   ├── w00 
 │   │   └── wcl 
-│   ├── tagging  - sentence tagging data
-│   │   └──openstax - data from openstax textbooks
+│   ├── tagging # sentence tagging data
+│   │   └──openstax - # data from openstax textbooks
 ├── src
 │   ├── models
 │   │   ├── __init__.py
@@ -20,7 +21,7 @@ This repository focuses on Sequence Labelling and sentence classification task f
 │   ├── data_loader.py
 │   └── train.py
 ├── utils
-│   └── params_classification.json - classification model hyperparameters.
+│   └── params_classification.json - # classification model hyperparameters.
 ├── __init__.py
 ├── .gitignore
 ├── main.py
@@ -28,7 +29,7 @@ This repository focuses on Sequence Labelling and sentence classification task f
 ```
 
 ### Installing
-Create virtual environment (You can use python virtual environment using requirements.txt), I prefer conda)
+Create virtual environment (You can use python virtual environment using requirements.txt, I prefer conda)
 ```
 conda env create -f environment.yml
 ```
