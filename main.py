@@ -41,6 +41,7 @@ if __name__ == "__main__":
         print("\tType 'python main.py -h' for more info.")
         exit()
 
+    # Set default
     if not '-t' in myargs:
         myargs['-t'] = 'classification'
     
@@ -124,7 +125,7 @@ if __name__ == "__main__":
         # Save the best model
         if valid_loss < best_valid_loss:
             best_valid_loss = valid_loss
-            torch.save(model.state_dict(), 'saved_weights.pt')
+            torch.save(model.state_dict(), myargs['-s'])
         print(f'Epoch: {epoch}')
         print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f} | Train F1: {train_f1:.2f}%')
         print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f} | Valid F1: {valid_f1:.2f}%')
