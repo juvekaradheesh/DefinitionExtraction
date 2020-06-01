@@ -12,6 +12,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchtext import data
+from torch.utils.tensorboard import SummaryWriter
 
 from src.models.sentence_classifier import SentenceClassifier
 from src.data_loader import load_data
@@ -36,7 +37,7 @@ if __name__ == "__main__":
         print("\t-p: hyperparameters file path")
         exit()
         
-    if not '-t' in myargs:
+    if not '-s' in myargs:
         print("\n\tMissing argument '-s'.\n")
         print("\tType 'python main.py -h' for more info.")
         exit()
@@ -56,6 +57,9 @@ if __name__ == "__main__":
 
     with open(myargs['-p']) as f:
         params = json.load(f)
+
+    # tensorboard summary writer
+    writer = SummaryWriter()
 
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
@@ -127,5 +131,11 @@ if __name__ == "__main__":
             best_valid_loss = valid_loss
             torch.save(model.state_dict(), myargs['-s'])
         print(f'Epoch: {epoch}')
-        print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f} | Train F1: {train_f1:.2f}%')
-        print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f} | Valid F1: {valid_f1:.2f}%')
+        print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f} | Train F1: {train_f1:.2f}')
+        print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f} | Valid F1: {valid_f1:.2f}')
+        writer.add_scalar('Loss/train', train_loss, epoch)
+        writer.add_scalar('Loss/validation', valid_loss, epoch)
+        writer.add_scalar('F1/train', train_f1, epoch)
+        writer.add_scalar('F1/validation', valid_f1, epoch)
+    
+    writer.close()
