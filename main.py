@@ -2,6 +2,7 @@ import os
 import random
 import json
 from sys import argv
+from argparse import ArgumentParser
 
 import pandas as pd
 import numpy as np
@@ -27,35 +28,22 @@ def getopts(argv):
     return opts
 
 if __name__ == "__main__":
-    myargs = getopts(argv)
-    if '-h' in myargs:
-        print("\nUsage: python main.py -s save_model [optional] -t -m -d -p \n")
-        print("\t-s: file path to save the model")
-        print("\t-t: tasks ('tagging', 'calssification')")
-        print("\t-m: models ('anke'[with classification],  'mahovy' [with tagging], 'tagging_bert' [with tagging])")
-        print("\t-d: datsets ('wcl', 'w00', 'openstax', 'all')")
-        print("\t-p: hyperparameters file path")
-        exit()
-        
-    if not '-s' in myargs:
-        print("\n\tMissing argument '-s'.\n")
-        print("\tType 'python main.py -h' for more info.")
-        exit()
+    parser = ArgumentParser()
 
-    # Set default
-    if not '-t' in myargs:
-        myargs['-t'] = 'classification'
-    
-    if not '-m' in myargs:
-        myargs['-m'] = 'anke'
-    
-    if not '-d' in myargs:
-        myargs['-d'] = 'wcl'
-    
-    if not '-p' in myargs:
-        myargs['-p'] = 'utils/params_classification.json'
+    parser.add_argument('-M', '--mode', help='select mode to run', required=True, choices=['train', 'test'])
+    parser.add_argument('-m', '--modelpath', help='provide save/load path for the model', required=True)
+    parser.add_argument('-t', '--task', help='select task to run', required=False, choices=['tagging', 'classification'], default='classification')
+    parser.add_argument('-a', '--architecture', help='select model architecture to use', required=False, choices=['anke', 'mahovy', 'bert'], default='anke')
+    parser.add_argument('-d', '--dataset', help='select dataset to use', required=False, choices=['w00', 'wcl', 'all'], default='wcl')
+    parser.add_argument('-p', '--param_file_path', help='provide path to hyperparameter json file', required=False, default='utils/params_classification.json')
 
-    with open(myargs['-p']) as f:
+
+    # hyperparameters
+    # parser.add_argument('-p', '--param_file_path', help='provide path to hyperparameter json file', required=False, default='utils/params_classification.json')
+
+    myargs = vars(parser.parse_args())
+    print(myargs)
+    with open(myargs['param_file_path']) as f:
         params = json.load(f)
 
     # tensorboard summary writer
@@ -64,78 +52,82 @@ if __name__ == "__main__":
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
 
-    # Load data
-    print("Loading data")    
-    if myargs['-d'] == 'all':
-        def_data_dir = os.path.join('data', myargs['-t'], 'all')
-        train_data_path = os.path.join(def_data_dir, 'train')
-        valid_data_path = os.path.join(def_data_dir, 'val')
-        is_csv = False
+    if myargs['mode'] == 'train':
+        # Load data
+        print("Loading data")    
+        if myargs['dataset'] == 'all':
+            def_data_dir = os.path.join('data', myargs['task'], 'all')
+            train_data_path = os.path.join(def_data_dir, 'train')
+            valid_data_path = os.path.join(def_data_dir, 'val')
+            is_csv = False
+        
+        if myargs['dataset'] == 'wcl':
+            def_data_dir = os.path.join('data', myargs['task'], 'wcl')
+            train_data_path = os.path.join(def_data_dir, 'train')
+            valid_data_path = os.path.join(def_data_dir, 'val')
+            is_csv = False
+
+        if myargs['dataset'] == 'w00':
+            def_data_dir = os.path.join('data', myargs['task'], 'w00')
+            train_data_path = os.path.join(def_data_dir, 'train')
+            valid_data_path = os.path.join(def_data_dir, 'val')
+            is_csv = False
+        
+
+        train_iterator, valid_iterator, TEXT, LABEL = load_data(train_data_path, valid_data_path, is_csv, params['batch_size'])
+
+        # Define parameters
+        params['num_embeddings'] = len(TEXT.vocab)
+
+        #Initialize the pretrained embedding
+        glove_vectors = TEXT.vocab.vectors
+
+        # Instantiate the model
+        if myargs['architecture'] == 'anke':
+            model = SentenceClassifier(params, glove_vectors)
+
+        # Model Architecture
+        print(model)
+
+        # No. of trianable parameters
+        def count_parameters(model):
+            return sum(p.numel() for p in model.parameters() if p.requires_grad)
+            
+        print(f'The model has {count_parameters(model):,} trainable parameters')
+
+        # Define optimizer and loss
+        if params['optimizer'] == 'adam':
+            optimizer = optim.Adam(model.parameters(), lr=params['learning_rate'])
+        if params['loss_fn'] == 'bce':
+            criterion = nn.BCELoss()
+
+        # Push to cuda if available
+        model = model.to(device)
+        criterion = criterion.to(device)
+
+        best_valid_loss = float('inf')
+
+        for epoch in range(params['num_epochs']):
+            
+            # Train the model
+            train_loss, train_acc, train_f1 = train(model, train_iterator, optimizer, criterion)
+            
+            # Evaluate the model
+            valid_loss, valid_acc, valid_f1 = evaluate(model, valid_iterator, criterion)
+            
+            # Save the best model
+            if valid_loss < best_valid_loss:
+                best_valid_loss = valid_loss
+                torch.save(model.state_dict(), myargs['modelpath'])
+            print(f'Epoch: {epoch}')
+            print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f} | Train F1: {train_f1:.2f}')
+            print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f} | Valid F1: {valid_f1:.2f}')
+            writer.add_scalar('Loss/train', train_loss, epoch)
+            writer.add_scalar('Loss/validation', valid_loss, epoch)
+            writer.add_scalar('F1/train', train_f1, epoch)
+            writer.add_scalar('F1/validation', valid_f1, epoch)
     
-    if myargs['-d'] == 'wcl':
-        def_data_dir = os.path.join('data', myargs['-t'], 'wcl')
-        train_data_path = os.path.join(def_data_dir, 'train')
-        valid_data_path = os.path.join(def_data_dir, 'val')
-        is_csv = False
+    else:
+        pass
 
-    if myargs['-d'] == 'w00':
-        def_data_dir = os.path.join('data', myargs['-t'], 'w00')
-        train_data_path = os.path.join(def_data_dir, 'train')
-        valid_data_path = os.path.join(def_data_dir, 'val')
-        is_csv = False
-    
-
-    train_iterator, valid_iterator, TEXT, LABEL = load_data(train_data_path, valid_data_path, is_csv, params['batch_size'])
-
-    # Define parameters
-    params['num_embeddings'] = len(TEXT.vocab)
-
-    #Initialize the pretrained embedding
-    glove_vectors = TEXT.vocab.vectors
-
-    # Instantiate the model
-    if myargs['-m'] == 'anke':
-        model = SentenceClassifier(params, glove_vectors)
-
-    # Model Architecture
-    print(model)
-
-    # No. of trianable parameters
-    def count_parameters(model):
-        return sum(p.numel() for p in model.parameters() if p.requires_grad)
-        
-    print(f'The model has {count_parameters(model):,} trainable parameters')
-
-    # Define optimizer and loss
-    if params['optimizer'] == 'adam':
-        optimizer = optim.Adam(model.parameters(), lr=params['learning_rate'])
-    if params['loss_fn'] == 'bce':
-        criterion = nn.BCELoss()
-
-    # Push to cuda if available
-    model = model.to(device)
-    criterion = criterion.to(device)
-
-    best_valid_loss = float('inf')
-
-    for epoch in range(params['num_epochs']):
-        
-        # Train the model
-        train_loss, train_acc, train_f1 = train(model, train_iterator, optimizer, criterion)
-        
-        # Evaluate the model
-        valid_loss, valid_acc, valid_f1 = evaluate(model, valid_iterator, criterion)
-        
-        # Save the best model
-        if valid_loss < best_valid_loss:
-            best_valid_loss = valid_loss
-            torch.save(model.state_dict(), myargs['-s'])
-        print(f'Epoch: {epoch}')
-        print(f'\tTrain Loss: {train_loss:.3f} | Train Acc: {train_acc*100:.2f} | Train F1: {train_f1:.2f}')
-        print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f} | Valid F1: {valid_f1:.2f}')
-        writer.add_scalar('Loss/train', train_loss, epoch)
-        writer.add_scalar('Loss/validation', valid_loss, epoch)
-        writer.add_scalar('F1/train', train_f1, epoch)
-        writer.add_scalar('F1/validation', valid_f1, epoch)
-    
     writer.close()
