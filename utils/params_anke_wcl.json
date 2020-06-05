@@ -14,5 +14,6 @@
     "optimizer": "adam",
     "loss_fn": "bce",
 
-    "save_summary_steps": 100
+    "save_summary_steps": 100,
+    "num_embeddings": 4166
 }

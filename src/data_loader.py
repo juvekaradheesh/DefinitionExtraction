@@ -86,10 +86,10 @@ def load_data(train_data_path=train_data_path, valid_data_path=valid_data_path, 
 
     TEXT.build_vocab(train_data,min_freq=3,vectors = "glove.6B.100d")
     LABEL.build_vocab(train_data)
-    print("Size of TEXT vocabulary:",len(TEXT.vocab))
-    print("Size of LABEL vocabulary:",len(LABEL.vocab))
-    print(TEXT.vocab.freqs.most_common(10))  
-    print(TEXT.vocab.stoi)
+    # print("Size of TEXT vocabulary:",len(TEXT.vocab))
+    # print("Size of LABEL vocabulary:",len(LABEL.vocab))
+    # print(TEXT.vocab.freqs.most_common(10))  
+    # print(TEXT.vocab.stoi)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
 
