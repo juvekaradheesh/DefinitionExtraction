@@ -13,10 +13,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchtext import data
+from torch.utils.data import Dataset, DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from src.models.sentence_classifier import SentenceClassifier
-from src.data_loader import load_data
+from src.data_loader import ClassificationDataset
 from src.train import train, evaluate
 
 def getopts(argv):

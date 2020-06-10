@@ -1,106 +1,100 @@
 import os
 import random
+import string
+
 import pandas as pd
 import torch
 from torchtext import data
-
-# FULL
-# def_data_dir = os.path.join('..', 'data', 'def_data', 'full')
-# train_data_path = os.path.join(def_data_dir, 'train')
-# valid_data_path = os.path.join(def_data_dir, 'val')
-
-# WCL
-# def_data_dir = os.path.join('..', 'data', 'wcl', 'full')
-# train_data_path = os.path.join(def_data_dir, 'train')
-# valid_data_path = os.path.join(def_data_dir, 'val')
-
-# W00
-def_data_dir = os.path.join('..', 'data', 'w00', 'full')
-train_data_path = os.path.join(def_data_dir, 'train')
-valid_data_path = os.path.join(def_data_dir, 'val')
+from torch.utils.data import Dataset, DataLoader
+from gensim.models.keyedvectors import KeyedVectors
 
 SEED = 2020
 torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
 
-def file_to_list(path):
-    list_ = []
-    f = open(path, 'r')
-    lines = f.readlines()
-    for line in lines:
-        list_.append(line.replace('\n',''))
-    f.close()
+class ClassificationDataset(Dataset):
+
+    def __init__(self, data_path):
+        self.sentences = self.file_to_list(os.path.join(data_path, 'sentences.txt'))
+        self.labels = self.file_to_list(os.path.join(data_path, 'labels.txt'))
+        self.w2v = KeyedVectors.load_word2vec_format('../utils/GoogleNews-vectors-negative300.bin', binary=True)
+        self.max_len = 0
+        self.samples = []
+
+        # Initialization of dataset
+        self.remove_punctuations()
+        self.init_dataset()
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        return self.samples[idx]
     
-    return list_
+    def remove_punctuations(self):
+        for i, s in enumerate(self.sentences):
+            s = s.translate(str.maketrans('', '', string.punctuation))
+            sent_list = s.split(' ')
+            while '' in sent_list:
+                sent_list.remove('')
+            self.sentences[i] = sent_list
 
-def get_data(data_path):
-    path = os.path.join(data_path, 'sentences.txt')
-    sentences = file_to_list(path)
+    def get_max_sent_len(self):
+        for s in self.sentences:
+            if len(s) > self.max_len:
+                self.max_len = len(s)
+
+    def pad_sentences(self):
+        for i, s in enumerate(self.sentences):
+            if len(s) < self.max_len:
+                diff = self.max_len - len(s)
+                padding = []
+                for j in range(diff):
+                    padding.append('<pad>')
+                temp = s + padding
+                self.sentences[i] = temp
+
+    def init_dataset(self):
+        self.get_max_sent_len()
+        self.pad_sentences()
+        for sentence, label in zip(self.sentences, self.labels):
+            feed_sentence = []
+            for word in sentence:
+                if word in self.w2v.vocab:
+                    vocab_obj = self.w2v.vocab[word]
+                    feed_sentence.append(vocab_obj.index)
+                else:
+                    feed_sentence.append(3000000)
+            self.samples.append((feed_sentence, int(label)))
+
+    def file_to_list(self, path):
+        list_ = []
+        f = open(path, 'r')
+        lines = f.readlines()
+        for line in lines:
+            list_.append(line.replace('\n',''))
+        f.close()
+        
+        return list_
+
+class TaggingDataset():
+
+    def __init__(self):
+        pass
     
-    path = os.path.join(data_path, 'labels.txt')
-    labels = file_to_list(path)
-    
-    return sentences, labels
+    def __len__(self):
+        pass
 
-def load_data(train_data_path=train_data_path, valid_data_path=valid_data_path, is_csv=False, batch_size=64):
-    if not is_csv:
-        # Reading data from file
-        print('Reading data from file')
-        train_data = get_data(train_data_path)
-        valid_data = get_data(valid_data_path)
-        print('Training data sentences: ', len(train_data[0]))
-        print('Validation data sentences: ', len(valid_data[0]))
-
-        # Put data to dataframe and then save to a csv file
-        df_train = pd.DataFrame(list(zip(train_data[0], train_data[1])), 
-                        columns =['Sentences', 'Labels'])
-        df_valid = pd.DataFrame(list(zip(valid_data[0], valid_data[1])), 
-                        columns =['Sentences', 'Labels'])
-
-        # df = pd.concat([df_train, df_val])
-        train_data_path = os.path.join(train_data_path, 'def_data_train.csv')
-        valid_data_path = os.path.join(valid_data_path, 'def_data_val.csv')
-        df_train.to_csv(train_data_path)
-        df_valid.to_csv(valid_data_path)
-
-        # Get Data statistics
-        non_def = df_train.groupby('Labels').count()['Sentences'][0]
-        def_ = df_train.groupby('Labels').count()['Sentences'][1]
-        print("Definition, non-definition sentences in training data: ", def_, ", ", non_def)
-
-        non_def = df_valid.groupby('Labels').count()['Sentences'][0]
-        def_ = df_valid.groupby('Labels').count()['Sentences'][1]
-        print("Definition, non-definition sentences in validation data: ", def_, ", ", non_def)
-
-    TEXT = data.Field(tokenize='spacy', batch_first=True, include_lengths=True)
-    LABEL = data.LabelField(dtype=torch.float, batch_first=True)
-
-    fields = [(None, None), ('sentence',TEXT),('label', LABEL)]
-
-    train_data = data.TabularDataset(path=train_data_path, format='csv', fields=fields, skip_header = True)
-    valid_data = data.TabularDataset(path=valid_data_path, format='csv', fields=fields, skip_header = True)
-
-    print("Example from training data: \n", vars(train_data.examples[0]))
-
-    # train_data, valid_data = training_data.split(split_ratio=0.7, random_state = random.seed(SEED))
-
-    TEXT.build_vocab(train_data,min_freq=3,vectors = "glove.6B.100d")
-    LABEL.build_vocab(train_data)
-    # print("Size of TEXT vocabulary:",len(TEXT.vocab))
-    # print("Size of LABEL vocabulary:",len(LABEL.vocab))
-    # print(TEXT.vocab.freqs.most_common(10))  
-    # print(TEXT.vocab.stoi)
-
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  
-
-    train_iterator, valid_iterator = data.BucketIterator.splits(
-        (train_data, valid_data), 
-        batch_size = batch_size,
-        sort_key = lambda x: len(x.sentence),
-        sort_within_batch=True,
-        device = device)
-
-    return train_iterator, valid_iterator, TEXT, LABEL
+    def __getitem__(self):
+        pass
 
 if __name__ == "__main__":
-    load_data()
+    def_data_dir = os.path.join('..', 'data', 'classification', 'w00')
+    train_data_path = os.path.join(def_data_dir, 'train')
+    valid_data_path = os.path.join(def_data_dir, 'val')
+
+    dataset = ClassificationDataset(train_data_path)
+    print(len(dataset))
+    print(dataset[420])
+
+    train_loader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=2)
