@@ -17,7 +17,7 @@ class ClassificationDataset(Dataset):
     def __init__(self, data_path):
         self.sentences = self.file_to_list(os.path.join(data_path, 'sentences.txt'))
         self.labels = self.file_to_list(os.path.join(data_path, 'labels.txt'))
-        self.w2v = KeyedVectors.load_word2vec_format('../utils/GoogleNews-vectors-negative300.bin', binary=True)
+        self.w2v = KeyedVectors.load_word2vec_format('utils/GoogleNews-vectors-negative300.bin', binary=True)
         self.max_len = 0
         self.samples = []
 

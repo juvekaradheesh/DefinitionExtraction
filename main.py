@@ -53,19 +53,27 @@ if __name__ == "__main__":
     writer = SummaryWriter()
 
     # Set device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')      
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     # Load data
-    print("Loading data")    
+    print("Loading data")
     train_data_path = myargs['train_data_path']
     valid_data_path = myargs['test_data_path']
     is_csv = myargs['is_csv']
-    
+
     if myargs['mode'] == 'train':
 
-        train_iterator, valid_iterator, TEXT, LABEL = load_data(train_data_path, valid_data_path, is_csv, params['batch_size'])
+        train_dataset = ClassificationDataset(train_data_path)
+        valid_dataset = ClassificationDataset(valid_data_path)
+
+        train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], num_workers=2)
+        valid_loader = DataLoader(valid_dataset, batch_size=params['batch_size'], num_workers=2)
+
+        train_iterator = iter(train_loader)
+        valid_iterator = iter(valid_loader)
 
         # Define parameters
-        params['num_embeddings'] = len(TEXT.vocab)
+        params['num_embeddings'] = len(train_dataset.w2v.vectors)
+        print(train_dataset.w2v.vectors, train_dataset.w2v.vectors.shape, type(train_dataset.w2v.vectors))
         with open(myargs['param_file_path'], 'w') as f:
             json.dump(params, f)
 
@@ -121,13 +129,20 @@ if __name__ == "__main__":
     
     else:
         
-        train_iterator, valid_iterator, TEXT, LABEL = load_data(train_data_path, valid_data_path, is_csv, params['batch_size'])
+        train_dataset = ClassificationDataset(train_data_path)
+        valid_dataset = ClassificationDataset(valid_data_path)
+
+        train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], num_workers=2)
+        valid_loader = DataLoader(valid_dataset, batch_size=params['batch_size'], num_workers=2)
+
+        train_iterator = iter(train_loader)
+        valid_iterator = iter(valid_loader)
 
         # Initialize the pretrained embedding
-        glove_vectors = TEXT.vocab.vectors
+        w2v_vectors = train_dataset.w2v.vectors
 
         if myargs['architecture'] == 'anke':
-            model = SentenceClassifier(params, glove_vectors)
+            model = SentenceClassifier(params, w2v_vectors)
         model.load_state_dict(torch.load(myargs['modelpath']))
         model.eval()
 

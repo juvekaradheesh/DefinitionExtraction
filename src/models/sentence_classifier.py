@@ -8,12 +8,12 @@ torch.backends.cudnn.deterministic = True
 
 class SentenceClassifier(nn.Module):
     
-    def __init__(self, params, glove_vectors):
+    def __init__(self, params, w2v_vectors):
         
         super(SentenceClassifier, self).__init__()
 
-        # self.embedding = nn.Embedding.from_pretrained(glove_vectors, True)
-        self.embedding = nn.Embedding(params['num_embeddings'], params['embedding_dim'])
+        self.embedding = nn.Embedding.from_pretrained(w2v_vectors, True)
+        # self.embedding = nn.Embedding(params['num_embeddings'], params['embedding_dim'])
         
         self.conv = nn.Conv1d(params['embedding_dim'],
                              params['cnn_num_filters'],
