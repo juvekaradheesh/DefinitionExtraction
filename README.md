@@ -12,20 +12,30 @@ Data is retrieved from multiple sources and is processsed by following [this](ht
 │   │   ├── w00 
 │   │   └── wcl 
 │   ├── tagging # sentence tagging data
-│   │   └──openstax - # data from openstax textbooks
+│   │   └──openstax # data from openstax textbooks
 ├── src
-│   ├── models
+│   ├── anke
 │   │   ├── __init__.py
-│   │   └── sentence_classifier.py
-│   ├── __init__.py
-│   ├── data_loader.py
-│   └── train.py
+│   │   ├── data_loader.py
+│   │   ├── sentence_classifier.py
+│   │   └── train.py
+│   ├── anke
+│   │   ├── __init__.py
+│   │   ├── cnn_blstm_crf.py
+│   │   ├── data_loader.py
+│   │   └── train.py
+│   └── __init__.py
 ├── utils
-│   └── params_classification.json - # classification model hyperparameters.
+│   ├── params_anke_all.json # classification model hyperparameters to be trained on all data
+│   ├── params_anke_w00.json # classification model hyperparameters to be trained on w00 data
+│   ├── params_anke_wcl.json # classification model hyperparameters to be trained on wcl data
+│   └── params_hovy_openstax.json # tagging model hyperparameters to be trained on openstax data. cnn blstm csf
 ├── __init__.py
 ├── .gitignore
+├── environment.yml
 ├── main.py
-└── README.md
+├── README.md
+└── requirements.txt
 ```
 
 ### Installing
@@ -48,7 +58,7 @@ use def as <env_name> if directly installed using .yml file.
 
 ### Run the file as
 ```
-python main.py -s model_save_path
+python main.py -M mode[train/test] -m model_save_path
 ```
 for more info
 ```

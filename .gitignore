@@ -5,3 +5,4 @@ __pycache__/
 saved_models/
 runs/
 utils/GoogleNews-vectors-negative300.bin
+utils/glove.6B.100d.txt

@@ -37,10 +37,12 @@ class SentenceClassifier(nn.Module):
 
     def forward(self, input):
 
-        x = self.embedding(input)
+        # input.transpose_(0,1)
 
+        x = self.embedding(input)
+        
         x = x.permute(0,2,1)
-        x = self.conv(x)
+        x = self.conv(x.float())
         
         x = self.maxpool(x)
         

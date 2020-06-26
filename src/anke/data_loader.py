@@ -3,6 +3,7 @@ import random
 import string
 
 import pandas as pd
+import numpy as np
 import torch
 from torchtext import data
 from torch.utils.data import Dataset, DataLoader
@@ -18,7 +19,7 @@ class ClassificationDataset(Dataset):
         self.sentences = self.file_to_list(os.path.join(data_path, 'sentences.txt'))
         self.labels = self.file_to_list(os.path.join(data_path, 'labels.txt'))
         self.w2v = KeyedVectors.load_word2vec_format('utils/GoogleNews-vectors-negative300.bin', binary=True)
-        self.max_len = 0
+        self.max_sen = 0
         self.samples = []
 
         # Initialization of dataset
@@ -41,13 +42,13 @@ class ClassificationDataset(Dataset):
 
     def get_max_sent_len(self):
         for s in self.sentences:
-            if len(s) > self.max_len:
-                self.max_len = len(s)
+            if len(s) > self.max_sen:
+                self.max_sen = len(s)
 
     def pad_sentences(self):
         for i, s in enumerate(self.sentences):
-            if len(s) < self.max_len:
-                diff = self.max_len - len(s)
+            if len(s) < self.max_sen:
+                diff = self.max_sen - len(s)
                 padding = []
                 for j in range(diff):
                     padding.append('<pad>')
@@ -60,12 +61,16 @@ class ClassificationDataset(Dataset):
         for sentence, label in zip(self.sentences, self.labels):
             feed_sentence = []
             for word in sentence:
-                if word in self.w2v.vocab:
+                if word == '<pad>':
+                    # Padders
+                    feed_sentence.append(3000001)
+                elif word in self.w2v.vocab:
                     vocab_obj = self.w2v.vocab[word]
                     feed_sentence.append(vocab_obj.index)
                 else:
+                    # Out-of-Vocabulary (OOV)
                     feed_sentence.append(3000000)
-            self.samples.append((feed_sentence, int(label)))
+            self.samples.append((torch.tensor(feed_sentence), int(label)))
 
     def file_to_list(self, path):
         list_ = []
@@ -77,19 +82,8 @@ class ClassificationDataset(Dataset):
         
         return list_
 
-class TaggingDataset():
-
-    def __init__(self):
-        pass
-    
-    def __len__(self):
-        pass
-
-    def __getitem__(self):
-        pass
-
 if __name__ == "__main__":
-    def_data_dir = os.path.join('..', 'data', 'classification', 'w00')
+    def_data_dir = os.path.join('data', 'classification', 'w00')
     train_data_path = os.path.join(def_data_dir, 'train')
     valid_data_path = os.path.join(def_data_dir, 'val')
 
@@ -98,3 +92,8 @@ if __name__ == "__main__":
     print(dataset[420])
 
     train_loader = DataLoader(dataset, batch_size=64, shuffle=True, num_workers=2)
+
+    for batch in iter(train_loader):
+        print(batch)
+        print(len(batch[0]), batch[0][0].size(), batch[1].size())
+        break
