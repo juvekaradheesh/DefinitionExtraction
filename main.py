@@ -37,6 +37,7 @@ if __name__ == "__main__":
     parser.add_argument('-tr', '--train_data_path', help='provide path trainig data', required=False, default='data/tagging/openstax/train')
     parser.add_argument('-te', '--test_data_path', help='provide path to test data', required=False, default='data/tagging/openstax/val')
     parser.add_argument('-p', '--param_file_path', help='provide path to hyperparameter json file', required=False, default='utils/params_hovy_openstax.json')
+    parser.add_argument('-s', '--summary', help='provide tensorboard summary file suffix', required=False, default='hovy_openstax')
 
     myargs = vars(parser.parse_args())
     print(myargs)
@@ -44,7 +45,7 @@ if __name__ == "__main__":
         params = json.load(f)
 
     # tensorboard summary writer
-    writer = SummaryWriter()
+    writer = SummaryWriter(filename_suffix=myargs['summary'])
 
     # Set device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
