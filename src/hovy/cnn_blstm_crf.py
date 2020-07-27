@@ -1,11 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from torchcrf import CRF
 from math import sqrt
 
 SEED = 2020
 torch.manual_seed(SEED)
 torch.backends.cudnn.deterministic = True
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class SentenceTagger(nn.Module):
     
@@ -29,6 +32,8 @@ class SentenceTagger(nn.Module):
                             batch_first=True, bidirectional=True)
 
         self.fc = nn.Linear(2 * params['lstm_hidden_size'], params['number_of_tags'])
+
+        self.crf = CRF(params['number_of_tags'],batch_first=True)
 
     def forward(self, input):
 
@@ -66,11 +71,14 @@ class SentenceTagger(nn.Module):
         s = s.contiguous()
 
         # reshape the Variable so that each row contains one token
-        s = s.view(-1, s.shape[2])       # dim: batch_size*seq_len x lstm_hidden_dim
+        # s = s.view(-1, s.shape[2])       # dim: batch_size*seq_len x lstm_hidden_dim
         
         # apply the fully connected layer and obtain the output (before softmax) for each token
         s = self.fc(s)                   # dim: batch_size*seq_len x num_tags
 
+        loss = -self.crf(s, input[2])
+        out = torch.FloatTensor(self.crf.decode(s))
+        return loss, out
         # apply log softmax on each token's output (this is recommended over applying softmax
         # since it is numerically more stable)
         # return F.log_softmax(s, dim=1)   # dim: batch_size*seq_len x num_tags

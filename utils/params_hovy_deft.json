@@ -12,7 +12,7 @@
     "batch_size": 10,
     "save_summary_steps": 100,
     "number_of_tags": 6,
-    "optimizer": "sgd",
+    "optimizer": "adam",
     "momentum": 0.9,
     "grad_clip": 5.0,
     "loss_fn": "ce"

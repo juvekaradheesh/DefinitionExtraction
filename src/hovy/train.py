@@ -39,16 +39,18 @@ def train(model, iterator, optimizer, criterion):
         one_hot = one_hot.view(-1, one_hot.shape[2]) # each row contains one token
         
         #convert to 1D tensor
-        predictions = model(batch)
+        loss, predictions = model(batch)
 
-        _, preds = predictions.max(dim=1)
+        preds = predictions.view(-1, )
+        
+        # _, preds = predictions.max(dim=1)
         _, labels = one_hot.max(dim=1)
-
+        
         #compute the loss
-        loss = criterion(predictions, labels)
+        # loss = criterion(predictions, labels)
         
         #compute the binary accuracy, f1
-        acc = multiclass_accuracy(preds, labels)
+        acc = multiclass_accuracy(preds.to('cpu'), labels.to('cpu'))
         f1 = f1_score(labels.to('cpu'), preds.to('cpu'), labels = [0, 1, 3, 4], average="macro", zero_division=1)
         # labels 0 : B, 1 : I, 3 : E, 4 : S
 
@@ -67,6 +69,7 @@ def train(model, iterator, optimizer, criterion):
         epoch_f1 += f1
         
     return epoch_loss / len(iterator), epoch_acc / len(iterator), epoch_f1 / len(iterator)
+    # return epoch_loss / len(iterator), 0, 0
 
 def evaluate(model, iterator, criterion):
     
@@ -90,14 +93,16 @@ def evaluate(model, iterator, criterion):
             one_hot = one_hot.view(-1, one_hot.shape[2]) # flatten
             
             #convert to 1d tensor
-            predictions = model(batch)
+            loss, predictions = model(batch)
+
+            preds = predictions.view(-1, )
 
             _, labels = one_hot.max(dim=1)
-            _, preds = predictions.max(dim=1)
+            # _, preds = predictions.max(dim=1)
 
             #compute loss, accuracy and f1
-            loss = criterion(predictions, labels)
-            acc = multiclass_accuracy(preds, labels)
+            # loss = criterion(predictions, labels)
+            acc = multiclass_accuracy(preds.to('cpu'), labels.to('cpu'))
             f1 = f1_score(labels.to('cpu'), preds.to('cpu'), labels = [0, 1, 3, 4], average="macro", zero_division=1)
             # labels 0 : B, 1 : I, 3 : E, 4 : S
             

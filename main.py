@@ -166,7 +166,7 @@ if __name__ == "__main__":
         if params['optimizer'] == 'adam':
             optimizer = optim.Adam(model.parameters(), lr=params['learning_rate'])
         elif params['optimizer'] == 'sgd':
-            optimizer = optim.SGD(model.parameters(), lr=params['learning_rate'], momentum=params['momentum'])
+            optimizer = optim.SGD(model.parameters(), lr=params['learning_rate'], momentum=params['momentum'], weight_decay=0.05)
         
         if params['loss_fn'] == 'bce':
             criterion = nn.BCELoss()
