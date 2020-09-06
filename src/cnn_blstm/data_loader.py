@@ -63,11 +63,11 @@ class TaggingDataset():
 
     def sentence_to_list(self):
         for i, sentence in enumerate(self.sentences):
-            self.sentences[i] = sentence.split()
+            self.sentences[i] = sentence.split(' ')
             
     def labels_to_list(self):
         for i, label in enumerate(self.labels):
-            self.labels[i] = label.split()
+            self.labels[i] = label.split(' ')
 
     def get_max_sent_word_len(self):
         for s in self.sentences:
@@ -147,7 +147,27 @@ class TaggingDataset():
         return list_
 
 if __name__ == "__main__":
-    def_data_dir = os.path.join('data', 'tagging', 'openstax')
+    # DONE ONCE TO REMOVE TRAILING SPACES
+
+    # def temp_stuff(filename):
+    #     f = open(filename, 'r')
+    #     lines = f.readlines()
+    #     for i, line in enumerate(lines):
+    #         # print(line)
+    #         todel = len(line) - 2
+    #         lines[i] = line[:todel] + line[todel+1:]
+    #     f.close()
+    #     f = open(filename, 'w')
+    #     for line in lines:
+    #         f.write(line)
+    #     f.close()
+    # dirs = ['data/tagging/deft_corpus/train', 'data/tagging/deft_corpus/val', 'data/tagging/deft_corpus/test']
+    # for dir_ in dirs:
+    #     temp_stuff(dir_+'/sentences.txt')
+    #     temp_stuff(dir_+'/labels.txt')
+    #     temp_stuff(dir_+'/labels_tdo.txt')
+
+    def_data_dir = os.path.join('data', 'tagging', 'deft_corpus')
     train_data_path = os.path.join(def_data_dir, 'train')
     valid_data_path = os.path.join(def_data_dir, 'val')
 

@@ -10,7 +10,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torchtext import data
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from src.anke.sentence_classifier import SentenceClassifier
@@ -30,14 +30,14 @@ def count_parameters(model):
 if __name__ == "__main__":
     parser = ArgumentParser()
 
+    parser.add_argument('-a', '--architecture', help='select model architecture to use', required=True, choices=['anke', 'mahovy', 'bert'], default='mahovy')
     parser.add_argument('-M', '--mode', help='select mode to run', required=True, choices=['train', 'test'])
-    parser.add_argument('-m', '--modelpath', help='provide save/load path for the model', required=True)
-    parser.add_argument('-t', '--task', help='select task to run', required=False, choices=['tagging', 'classification'], default='tagging')
-    parser.add_argument('-a', '--architecture', help='select model architecture to use', required=False, choices=['anke', 'mahovy', 'bert'], default='mahovy')
+    parser.add_argument('-m', '--model_path', help='provide save/load path for the model', required=True)
     parser.add_argument('-tr', '--train_data_path', help='provide path trainig data', required=False, default='data/tagging/openstax/train')
     parser.add_argument('-te', '--test_data_path', help='provide path to test data', required=False, default='data/tagging/openstax/val')
     parser.add_argument('-p', '--param_file_path', help='provide path to hyperparameter json file', required=False, default='utils/params_hovy_openstax.json')
     parser.add_argument('-s', '--summary', help='provide tensorboard summary file suffix', required=False, default='hovy_openstax')
+    parser.add_argument('-e', '--embedding', help='Embeddings type (for anke)', required=False, choices=['glove', 'w2v'])
 
     myargs = vars(parser.parse_args())
     print(myargs)
@@ -56,29 +56,38 @@ if __name__ == "__main__":
     valid_data_path = myargs['test_data_path']
     
     # Check for task
-    if myargs['task'] == 'classification':
-        train_dataset = ClassificationDataset(train_data_path)
-        valid_dataset = ClassificationDataset(valid_data_path)
+    if myargs['architecture'] == 'anke':
+        if myargs['embedding'] == 'glove':
+            embedding_type = 'glove'
+            embeddings_path = 'utils/glove.6B.100d.txt'
+        else:
+            embedding_type = 'w2v'
+            embeddings_path = 'utils/GoogleNews-vectors-negative300.bin'
+
+        train_dataset = ClassificationDataset(train_data_path, embedding_type, embeddings_path)
+        valid_dataset = ClassificationDataset(valid_data_path, embedding_type, embeddings_path)
 
         train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], num_workers=2)
         valid_loader = DataLoader(valid_dataset, batch_size=params['batch_size'], num_workers=2)
 
         # Initialize the pretrained embedding
-        w2v_vectors = train_dataset.w2v.vectors
+        if embedding_type == 'w2v':
+            word_vectors = train_dataset.w2v.vectors
 
-        # Add vectors for <pad> and OOV
+            # Add vectors for <pad> and OOV
 
-        # Randomly initialized vector for OOV
-        w2v_vectors = np.vstack((w2v_vectors, np.random.rand(300)))
-        # 0 vector for padding
-        w2v_vectors = np.vstack((w2v_vectors, np.zeros(300)))
-        
-        # Convert to tensor
-        w2v_vectors = torch.from_numpy(w2v_vectors)
+            # Randomly initialized vector for OOV
+            word_vectors = np.vstack((word_vectors, np.random.rand(300)))
+            # 0 vector for padding
+            word_vectors = np.vstack((word_vectors, np.zeros(300)))
+            
+            # Convert to tensor
+            word_vectors = torch.from_numpy(word_vectors)
 
-        # Instantiate the model
-        if myargs['architecture'] == 'anke':
-            model = SentenceClassifier(params, w2v_vectors)
+        else:
+            word_vectors = train_dataset.glove_matrix
+
+        model = SentenceClassifier(params, word_vectors)
         
         # Define optimizer and loss
         if params['optimizer'] == 'adam':
@@ -121,7 +130,7 @@ if __name__ == "__main__":
                 # Save the best model
                 if valid_loss < best_valid_loss:
                     best_valid_loss = valid_loss
-                    torch.save(model.state_dict(), myargs['modelpath'])
+                    torch.save(model.state_dict(), myargs['model_path'])
 
                 epoch_end_time = timeit.default_timer()
 
@@ -141,16 +150,18 @@ if __name__ == "__main__":
             train_iterator = iter(train_loader)
             valid_iterator = iter(valid_loader)
 
-            model.load_state_dict(torch.load(myargs['modelpath']))
+            model.load_state_dict(torch.load(myargs['model_path']))
             model.eval()
 
             valid_loss, valid_acc, valid_f1 = evaluate_classification(model, valid_iterator, criterion)
             print(f'\t Val. Loss: {valid_loss:.3f} |  Val. Acc: {valid_acc*100:.2f}% | Valid F1: {valid_f1:.2f}')
 
-    if myargs['task'] == 'tagging':
+    if myargs['architecture'] == 'mahovy':
 
-        train_dataset = TaggingDataset(train_data_path)
-        valid_dataset = TaggingDataset(valid_data_path)
+        embeddings_path = 'utils/glove.6B.100d.txt'
+
+        train_dataset = TaggingDataset(train_data_path, embeddings_path)
+        valid_dataset = TaggingDataset(valid_data_path, embeddings_path)
 
         train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], num_workers=2)
         valid_loader = DataLoader(valid_dataset, batch_size=params['batch_size'], num_workers=2)
@@ -159,8 +170,7 @@ if __name__ == "__main__":
         glove_vectors = train_dataset.glove_matrix
 
         # Instantiate the model
-        if myargs['architecture'] == 'mahovy':
-            model = SentenceTagger(params, glove_vectors)
+        model = SentenceTagger(params, glove_vectors)
 
         # Define optimizer and loss
         if params['optimizer'] == 'adam':
@@ -207,7 +217,7 @@ if __name__ == "__main__":
                 # Save the best model
                 if valid_loss < best_valid_loss:
                     best_valid_loss = valid_loss
-                    torch.save(model.state_dict(), myargs['modelpath'])
+                    torch.save(model.state_dict(), myargs['model_path'])
 
                 epoch_end_time = timeit.default_timer()
 
@@ -227,7 +237,7 @@ if __name__ == "__main__":
             train_iterator = iter(train_loader)
             valid_iterator = iter(valid_loader)
 
-            model.load_state_dict(torch.load(myargs['modelpath']))
+            model.load_state_dict(torch.load(myargs['model_path']))
             model.eval()
 
             valid_loss, valid_acc, valid_f1 = evaluate_tagging(model, valid_iterator, criterion)

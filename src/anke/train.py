@@ -1,16 +1,6 @@
-import os
-import random
-import json
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torchtext import data
 
 SEED = 2020
 torch.manual_seed(SEED)

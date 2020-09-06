@@ -1,0 +1,45 @@
+Format:
+Architecture, Dataset, Embeddings
+Command
+
+1. 
+MaHovy, Deft Corpus, Glove
+python main.py -M train -m saved_models/hovy_deft.pt -a mahovy -tr data/tagging/deft_corpus/train -te data/tagging/deft_corpus/val -p utils/params_hovy_deft.json -s hovy_deft
+
+2.
+MaHovy, Openstax, Glove
+python main.py -M train -m saved_models/hovy_openstax.pt -a mahovy -tr data/tagging/openstax/train -te data/tagging/openstax/val -p utils/params_hovy_openstax.json -s hovy_openstax
+
+3.
+MaHovy, WCL, Glove
+python main.py -M train -m saved_models/hovy_wcl.pt -a mahovy -tr data/tagging/wcl_resplit/train -te data/tagging/wcl_resplit/val -p utils/params_hovy_wcl.json -s hovy_wcl
+
+python main.py -M test -m saved_models/hovy_wcl.pt -a mahovy -tr data/tagging/wcl_resplit/train -te data/tagging/wcl_resplit/test -p utils/params_hovy_wcl.json -s hovy_wcl
+
+4.
+BLSTM-CRF, Deft Corpus, Glove
+// Will add later //python main.py -M train -m saved_models/hovy_deft.pt -a mahovy -tr data/tagging/deft_corpus/train -te data/tagging/deft_corpus/val -p utils/params_hovy_deft.json -s temp
+
+5.
+BLSTM-CRF, Openstax, Glove
+// Will add later //python main.py -M train -m saved_models/hovy_deft.pt -a mahovy -tr data/tagging/deft_corpus/train -te data/tagging/deft_corpus/val -p utils/params_hovy_deft.json -s temp
+
+6.
+Anke, All, Glove
+python main.py -M train -m saved_models/anke_glove_all.pt -a anke -tr data/classification/all/train -te data/classification/all/val -p utils/params_anke_all.json -s anke_glove_all -e glove
+
+7.
+Anke, All, W2V
+python main.py -M train -m saved_models/anke_w2v_all.pt -a anke -tr data/classification/all/train -te data/classification/all/val -p utils/params_anke_all.json -s anke_w2v_all -e w2v
+
+8.
+Anke, WCL, Glove
+python main.py -M train -m saved_models/anke_glove_wcl.pt -a anke -tr data/classification/wcl/train -te data/classification/wcl/val -p utils/params_anke_wcl.json -s anke_glove_wcl -e glove
+
+// 9.
+// Anke, WCL, W2V
+// python main.py -M train -m saved_models/anke_glove_wcl.pt -a anke -tr data/classification/wcl/train -te data/classification/wcl/val -p utils/params_anke_wcl.json -s anke_glove_wcl -e glove
+
+10.
+Anke, W00, Glove
+// python main.py -M train -m saved_models/anke_glove_wcl.pt -a anke -tr data/classification/wcl/train -te data/classification/wcl/val -p utils/params_anke_wcl.json -s anke_glove_wcl -e glove
