@@ -13,11 +13,20 @@ torch.backends.cudnn.deterministic = True
 
 class ClassificationDataset(Dataset):
 
-    def __init__(self, data_path, embedding_type, embeddings_path):
+    def __init__(self, embedding_type, embeddings_path, data_path=None, sentences=None, labels=None):
         self.embeddings_path = embeddings_path
         self.embedding_type = embedding_type
-        self.sentences = self.file_to_list(os.path.join(data_path, 'sentences.txt'))
-        self.labels = self.file_to_list(os.path.join(data_path, 'labels.txt'))
+
+        if data_path is None:
+            self.sentences = sentences
+            if labels is None:
+                self.labels = [0]*len(sentences)
+            else:
+                self.labels = labels
+        else:
+            self.sentences = self.file_to_list(os.path.join(data_path, 'sentences.txt'))
+            self.labels = self.file_to_list(os.path.join(data_path, 'labels.txt'))
+
         if embedding_type == 'w2v':
             self.w2v = KeyedVectors.load_word2vec_format(embeddings_path, binary=True)
         else:

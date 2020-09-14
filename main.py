@@ -64,8 +64,8 @@ if __name__ == "__main__":
             embedding_type = 'w2v'
             embeddings_path = 'utils/GoogleNews-vectors-negative300.bin'
 
-        train_dataset = ClassificationDataset(train_data_path, embedding_type, embeddings_path)
-        valid_dataset = ClassificationDataset(valid_data_path, embedding_type, embeddings_path)
+        train_dataset = ClassificationDataset(data_path=train_data_path, embedding_type=embedding_type, embeddings_path=embeddings_path)
+        valid_dataset = ClassificationDataset(data_path=valid_data_path, embedding_type=embedding_type, embeddings_path=embeddings_path)
 
         train_loader = DataLoader(train_dataset, batch_size=params['batch_size'], num_workers=2)
         valid_loader = DataLoader(valid_dataset, batch_size=params['batch_size'], num_workers=2)

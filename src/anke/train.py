@@ -87,6 +87,19 @@ def evaluate(model, iterator, criterion):
         
     return epoch_loss / len(iterator), epoch_acc / len(iterator), epoch_f1 / len(iterator)
 
+def predict(model, iterator):
+    with torch.no_grad():
+        for batch in iterator:
+            batch[0] = batch[0].to('cuda')
+            batch[1] = batch[1].to('cuda')
+
+            text = batch[0]
+            
+            #convert to 1d tensor
+            predictions = model(text).squeeze()
+            
+    return predictions
+
 def binary_accuracy(preds, y):
     
     # Round predictions to the closest integer
